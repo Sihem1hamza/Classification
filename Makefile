@@ -1,18 +1,22 @@
+CC? = gcc
 CXX? = g++
-INCLUDE = /usr/include/qt4
-CFLAGS = -Wall -O3 -I$(INCLUDE) -I$(INCLUDE)/QtGui -I$(INCLUDE)/QtCore
-LIB = -lQtGui -lQtCore
-MOC = /usr/bin/moc-qt4
+CFLAGS = -Wall -O3 -g `pkg-config --cflags gtk+-2.0`
+LIBS = `pkg-config --libs gtk+-2.0`
 
-svm-toy: svm-toy.cpp svm-toy.moc ../../svm.o
-	$(CXX) $(CFLAGS) svm-toy.cpp ../../svm.o -o svm-toy $(LIB)
+svm-toy: main.o interface.o callbacks.o ../../svm.o
+	$(CXX) $(CFLAGS) main.o interface.o callbacks.o ../../svm.o -o svm-toy $(LIBS)
 
-svm-toy.moc: svm-toy.cpp
-	$(MOC) svm-toy.cpp -o svm-toy.moc
+main.o: main.c
+	$(CC) $(CFLAGS) -c main.c
+
+interface.o: interface.c interface.h
+	$(CC) $(CFLAGS) -c interface.c
+
+callbacks.o: callbacks.cpp callbacks.h
+	$(CXX) $(CFLAGS) -c callbacks.cpp
 
 ../../svm.o: ../../svm.cpp ../../svm.h
 	make -C ../.. svm.o
 
 clean:
-	rm -f *~ svm-toy svm-toy.moc ../../svm.o
-
+	rm -f *~ callbacks.o svm-toy main.o interface.o callbacks.o ../../svm.o
