@@ -1,25 +1,18 @@
-CXX ?= g++
-CFLAGS = -Wall -Wconversion -O3 -fPIC
-SHVER = 2
-OS = $(shell uname)
+CXX? = g++
+INCLUDE = /usr/include/qt4
+CFLAGS = -Wall -O3 -I$(INCLUDE) -I$(INCLUDE)/QtGui -I$(INCLUDE)/QtCore
+LIB = -lQtGui -lQtCore
+MOC = /usr/bin/moc-qt4
 
-all: svm-train svm-predict svm-scale
+svm-toy: svm-toy.cpp svm-toy.moc ../../svm.o
+	$(CXX) $(CFLAGS) svm-toy.cpp ../../svm.o -o svm-toy $(LIB)
 
-lib: svm.o
-	if [ "$(OS)" = "Darwin" ]; then \
-		SHARED_LIB_FLAG="-dynamiclib -Wl,-install_name,libsvm.so.$(SHVER)"; \
-	else \
-		SHARED_LIB_FLAG="-shared -Wl,-soname,libsvm.so.$(SHVER)"; \
-	fi; \
-	$(CXX) $${SHARED_LIB_FLAG} svm.o -o libsvm.so.$(SHVER)
+svm-toy.moc: svm-toy.cpp
+	$(MOC) svm-toy.cpp -o svm-toy.moc
 
-svm-predict: svm-predict.c svm.o
-	$(CXX) $(CFLAGS) svm-predict.c svm.o -o svm-predict -lm
-svm-train: svm-train.c svm.o
-	$(CXX) $(CFLAGS) svm-train.c svm.o -o svm-train -lm
-svm-scale: svm-scale.c
-	$(CXX) $(CFLAGS) svm-scale.c -o svm-scale
-svm.o: svm.cpp svm.h
-	$(CXX) $(CFLAGS) -c svm.cpp
+../../svm.o: ../../svm.cpp ../../svm.h
+	make -C ../.. svm.o
+
 clean:
-	rm -f *~ svm.o svm-train svm-predict svm-scale libsvm.so.$(SHVER)
+	rm -f *~ svm-toy svm-toy.moc ../../svm.o
+
