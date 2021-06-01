@@ -1,25 +1,26 @@
-CXX ?= g++
-CFLAGS = -Wall -Wconversion -O3 -fPIC
-SHVER = 2
-OS = $(shell uname)
+.SUFFIXES: .class .java
+FILES = libsvm/svm.class libsvm/svm_model.class libsvm/svm_node.class \
+		libsvm/svm_parameter.class libsvm/svm_problem.class \
+		libsvm/svm_print_interface.class \
+		svm_train.class svm_predict.class svm_toy.class svm_scale.class
 
-all: svm-train svm-predict svm-scale
+#JAVAC = jikes
+JAVAC_FLAGS = -target 1.7 -source 1.7
+JAVAC = javac
+# JAVAC_FLAGS =
+export CLASSPATH := .:$(CLASSPATH)
 
-lib: svm.o
-	if [ "$(OS)" = "Darwin" ]; then \
-		SHARED_LIB_FLAG="-dynamiclib -Wl,-install_name,libsvm.so.$(SHVER)"; \
-	else \
-		SHARED_LIB_FLAG="-shared -Wl,-soname,libsvm.so.$(SHVER)"; \
-	fi; \
-	$(CXX) $${SHARED_LIB_FLAG} svm.o -o libsvm.so.$(SHVER)
+all: $(FILES)
+	jar cvf libsvm.jar *.class libsvm/*.class
 
-svm-predict: svm-predict.c svm.o
-	$(CXX) $(CFLAGS) svm-predict.c svm.o -o svm-predict -lm
-svm-train: svm-train.c svm.o
-	$(CXX) $(CFLAGS) svm-train.c svm.o -o svm-train -lm
-svm-scale: svm-scale.c
-	$(CXX) $(CFLAGS) svm-scale.c -o svm-scale
-svm.o: svm.cpp svm.h
-	$(CXX) $(CFLAGS) -c svm.cpp
+.java.class:
+	$(JAVAC) $(JAVAC_FLAGS) $<
+
+libsvm/svm.java: libsvm/svm.m4
+	m4 libsvm/svm.m4 > libsvm/svm.java
+
 clean:
-	rm -f *~ svm.o svm-train svm-predict svm-scale libsvm.so.$(SHVER)
+	rm -f libsvm/*.class *.class *.jar libsvm/*~ *~ libsvm/svm.java
+
+dist: clean all
+	rm *.class libsvm/*.class
