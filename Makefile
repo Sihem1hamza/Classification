@@ -1,25 +1,45 @@
+# This Makefile is used under Linux
+
+MATLABDIR ?= /usr/local/matlab
+# for Mac
+# MATLABDIR ?= /opt/local/matlab
+
 CXX ?= g++
-CFLAGS = -Wall -Wconversion -O3 -fPIC
-SHVER = 2
-OS = $(shell uname)
+#CXX = g++-4.1
+CFLAGS = -Wall -Wconversion -O3 -fPIC -I$(MATLABDIR)/extern/include -I..
 
-all: svm-train svm-predict svm-scale
+MEX = $(MATLABDIR)/bin/mex
+MEX_OPTION = CC="$(CXX)" CXX="$(CXX)" CFLAGS="$(CFLAGS)" CXXFLAGS="$(CFLAGS)"
+# comment the following line if you use MATLAB on 32-bit computer
+MEX_OPTION += -largeArrayDims
+MEX_EXT = $(shell $(MATLABDIR)/bin/mexext)
 
-lib: svm.o
-	if [ "$(OS)" = "Darwin" ]; then \
-		SHARED_LIB_FLAG="-dynamiclib -Wl,-install_name,libsvm.so.$(SHVER)"; \
-	else \
-		SHARED_LIB_FLAG="-shared -Wl,-soname,libsvm.so.$(SHVER)"; \
-	fi; \
-	$(CXX) $${SHARED_LIB_FLAG} svm.o -o libsvm.so.$(SHVER)
+all:	matlab
 
-svm-predict: svm-predict.c svm.o
-	$(CXX) $(CFLAGS) svm-predict.c svm.o -o svm-predict -lm
-svm-train: svm-train.c svm.o
-	$(CXX) $(CFLAGS) svm-train.c svm.o -o svm-train -lm
-svm-scale: svm-scale.c
-	$(CXX) $(CFLAGS) svm-scale.c -o svm-scale
-svm.o: svm.cpp svm.h
-	$(CXX) $(CFLAGS) -c svm.cpp
+matlab:	binary
+
+octave:
+	@echo "please type make under Octave"
+
+binary: svmpredict.$(MEX_EXT) svmtrain.$(MEX_EXT) libsvmread.$(MEX_EXT) libsvmwrite.$(MEX_EXT)
+
+svmpredict.$(MEX_EXT):     svmpredict.c ../svm.h ../svm.o svm_model_matlab.o
+	$(MEX) $(MEX_OPTION) svmpredict.c ../svm.o svm_model_matlab.o
+
+svmtrain.$(MEX_EXT):       svmtrain.c ../svm.h ../svm.o svm_model_matlab.o
+	$(MEX) $(MEX_OPTION) svmtrain.c ../svm.o svm_model_matlab.o
+
+libsvmread.$(MEX_EXT):	libsvmread.c
+	$(MEX) $(MEX_OPTION) libsvmread.c
+
+libsvmwrite.$(MEX_EXT):	libsvmwrite.c
+	$(MEX) $(MEX_OPTION) libsvmwrite.c
+
+svm_model_matlab.o:     svm_model_matlab.c ../svm.h
+	$(CXX) $(CFLAGS) -c svm_model_matlab.c
+
+../svm.o: ../svm.cpp ../svm.h
+	make -C .. svm.o
+
 clean:
-	rm -f *~ svm.o svm-train svm-predict svm-scale libsvm.so.$(SHVER)
+	rm -f *~ *.o *.mex* *.obj ../svm.o
